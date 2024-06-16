@@ -7,6 +7,7 @@ mod tests {
 
     use std::sync::Arc;
     use std::sync::Barrier;
+    use std::sync::Once;
     use std::thread::{self, JoinHandle};
     use std::time::Duration;
     use std::{error, result};
@@ -158,6 +159,35 @@ mod tests {
             });
             handles.push(handle);
         }
+        for handle in handles {
+            handle.join().unwrap();
+        }
+    }
+
+    static mut TOTAL_COUNTER: i32 = 0;
+    static TOTAL_INIT: Once = Once::new();
+
+    fn get_total() -> i32 {
+        unsafe {
+            TOTAL_INIT.call_once(|| {
+                println!("Call Once");
+                TOTAL_COUNTER += 1;
+            });
+            TOTAL_COUNTER
+        }
+    }
+
+    #[test]
+    fn test_once() {
+        let mut handles = vec![];
+        for i in 0..10 {
+            let handle = thread::spawn(move || {
+                let total = get_total();
+                println!("Total : {}", total);
+            });
+            handles.push(handle);
+        }
+
         for handle in handles {
             handle.join().unwrap();
         }
